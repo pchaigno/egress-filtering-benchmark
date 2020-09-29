@@ -10,6 +10,7 @@ import (
 	"net"
 
 	"github.com/kinvolk/k8s-egress-filtering-benchmark/pkg/filters/bpf"
+	"github.com/kinvolk/k8s-egress-filtering-benchmark/pkg/filters/calico"
 	"github.com/kinvolk/k8s-egress-filtering-benchmark/pkg/filters/ipset"
 	"github.com/kinvolk/k8s-egress-filtering-benchmark/pkg/filters/iptables"
 	"github.com/kinvolk/k8s-egress-filtering-benchmark/pkg/ipnetsgenerator"
@@ -72,6 +73,8 @@ func main() {
 		filter = iptables.New()
 	case "ipset":
 		filter = ipset.New()
+	case "calico":
+		filter = calico.New(nets, iface)
 	default:
 		fmt.Printf("%q is not a valid filter type", filterType)
 		os.Exit(1)
@@ -100,6 +103,9 @@ func main() {
 			return
 		}
 
+		// TODO: Add a more concrete way to check if the rules are updated or not
+		time.Sleep(30 * time.Second)
+
 		// Check that the test ip is not reachable after applying the filter
 		if err := checkPingFail(testIP); err != nil {
 			fmt.Printf("%s\n", err)
@@ -108,6 +114,7 @@ func main() {
 
 		defer filter.CleanUp()
 	}
+
 	if os.Getenv("BENCHMARK_COMMAND") == "MEASURE_SETUP_TIME" {
 		fmt.Println(setupTime)
 	} else if os.Getenv("BENCHMARK_COMMAND") != "" {
